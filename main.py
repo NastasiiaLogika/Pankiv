@@ -1,105 +1,129 @@
-import math
+import pygame
 import random
 import sys
-import time
 
-import pygame
-from pygame.locals import *
+# Ініціалізація Pygame
+pygame.init()
 
-img_hole = "hole.png"
+# Колір
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 
-pygame.font.init()
+# Розміри екрану
+WIDTH, HEIGHT = 800, 600
 
-CLICK = pygame.font.SysFont("Arial", 24).render("Click", True, (255, 255, 255))
+# Розмір і кількість дірок
+NUM_HOLES_PER_ROW = 3
+NUM_ROWS = 3
+HOLE_SIZE = 100
+HOLES_MARGIN_X = 50
+HOLES_MARGIN_Y = 50
 
-WIDTH, HEIGHT = 600, 600
-HOLE_WIDTH, HOLE_HEIGHT = 100, 100
-DEFAULT_COLOR = (41, 75, 128)
-FPS = 60
+# Розмір бобра
+BEAVER_SIZE = 80
 
+# Швидкість з'явлення бобра
+BEAVER_SPEED = 1000
 
-class Hole:
-    def __init__(self, start_coordinates, color):
-        self.rect = pygame.rect.Rect(*start_coordinates, HOLE_WIDTH, HOLE_HEIGHT)
-        self.color = color
-        self.fired = False
+# Очки гравця
+score = 0
 
-    def center(self):
-        return self.rect.x + (self.rect.width - CLICK.get_width()) // 2, \
-               self.rect.y + (self.rect.height - CLICK.get_height()) // 2
+# Створення екрану
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Whack-a-Beaver!")
 
+# Завантаження зображень
+background_img = pygame.image.load("background.jpg")
+background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+beaver_img = pygame.image.load("beaver.png")
+beaver_img = pygame.transform.scale(beaver_img, (BEAVER_SIZE, BEAVER_SIZE))
+hammer_img = pygame.image.load("hammer.png")
+hole_img = pygame.image.load("hole.png")
+hole_img = pygame.transform.scale(hole_img, (HOLE_SIZE, HOLE_SIZE))
 
-class Game:
-    def __init__(self):
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        self.clock = pygame.time.Clock()
-        self.counter = 0
-        self.message_font = pygame.font.SysFont("Arial", 24)
+# Функція для відображення молотка
+def display_hammer(x, y):
+    screen.blit(hammer_img, (x, y))
 
-        self.rectangles = [
-            Hole((25, 50), (41, 75, 128)),
-            Hole((250, 50), (41, 75, 128)),
-            Hole((475, 50), (41, 75, 128)),
-            Hole((25, 200), (41, 75, 128)),
-            Hole((250, 200), (41, 75, 128)),
-            Hole((475, 200), (41, 75, 128)),
-            Hole((25, 350), (41, 75, 128)),
-            Hole((250, 350), (41, 75, 128)),
-            Hole((475, 350), (41, 75, 128)),
-        ]
+# Функція для відображення дирки
+def display_hole(x, y):
+    screen.blit(hole_img, (x, y))
 
-        pygame.display.set_caption("Втовчи Ховраха")
+# Функція для визначення області, де можна клікати на бобра
+def beaver_rect(x, y):
+    return pygame.Rect(x, y, BEAVER_SIZE, BEAVER_SIZE)
 
-    def run(self):
-        start_time = time.time()
-        random_rectangle = random.choice(self.rectangles)
-        random_rectangle.fired = True
+# Функція для визначення, чи клікнули на бобра
+def check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
+    beaver_rect = pygame.Rect(beaver_x, beaver_y, BEAVER_SIZE, BEAVER_SIZE)
+    return beaver_rect.collidepoint(click_x, click_y)
 
-        while True:
-            self.screen.fill((58, 101, 166))
-            message = self.message_font.render(f"Рахунок: {self.counter}", True, (255, 255, 255))
+# Час, коли бобер з'явиться на іншому місці
+next_beaver_time = pygame.time.get_ticks() + BEAVER_SPEED
 
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    pygame.quit()
-                    sys.exit()
+# Основний цикл гри
+running = True
+while running:
+    screen.fill(WHITE)
 
-                if event.type == MOUSEBUTTONDOWN and event.button == 1:
-                    for rectangle in self.rectangles:
-                        if rectangle.rect.collidepoint(event.pos) and rectangle.fired:
-                            self.counter += 1
+    # Відображення фону
+    screen.blit(background_img, (0, 0))
 
-                            rectangle.color = (0, 255, 0)
-                        elif rectangle.rect.collidepoint(event.pos) and not rectangle.fired:
-                            self.counter -= 1
+    # Обробка подій
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-                            rectangle.color = (255, 0, 0)
+        # Обробка кліків миші
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            click_x, click_y = pygame.mouse.get_pos()
+            for hole_x, hole_y in holes:
+                if hole_x <= click_x <= hole_x + HOLE_SIZE and hole_y <= click_y <= hole_y + HOLE_SIZE:
+                    if 'beaver_x' in locals() and 'beaver_y' in locals():
+                        if check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
+                            score += 1
+                            if score >= 25:
+                                # Перемога
+                                font = pygame.font.Font(None, 72)
+                                win_text = font.render("You Win!", True, WHITE)
+                                screen.blit(win_text, ((WIDTH - win_text.get_width()) // 2, (HEIGHT - win_text.get_height()) // 2))
+                                pygame.display.flip()
+                                pygame.time.wait(2000)  # Затримка на 2 секунди
+                                running = False
                         else:
-                            rectangle.color = DEFAULT_COLOR
+                            score -= 1
 
-            for rectangle in self.rectangles:
-                pygame.draw.rect(self.screen, rectangle.color, rectangle)
+    # Вивід дірок на екран
+    holes = []
+    for i in range(NUM_ROWS):
+        for j in range(NUM_HOLES_PER_ROW):
+            hole_x = j * (WIDTH // NUM_HOLES_PER_ROW) + HOLES_MARGIN_X
+            hole_y = i * (HEIGHT // NUM_ROWS) + HOLES_MARGIN_Y
+            display_hole(hole_x, hole_y)
+            holes.append((hole_x, hole_y))
 
-                if rectangle.fired:
-                    self.screen.blit(CLICK, rectangle.center())
-                else:
-                    pass
+    # Перевірка часу для появи нового бобра
+    current_time = pygame.time.get_ticks()
+    if current_time >= next_beaver_time:
+        if holes:
+            beaver_x, beaver_y = random.choice(holes)
+            beaver_x += (HOLE_SIZE - BEAVER_SIZE) // 2
+            beaver_y += (HOLE_SIZE - BEAVER_SIZE) // 2
+            next_beaver_time = current_time + BEAVER_SPEED
 
-            if (start_time - time.time()) % 2 < 0.01:
-                random_rectangle.fired = False
-                random_rectangle = random.choice(self.rectangles)
-                random_rectangle.fired = True
+    # Відображення бобра
+    if 'beaver_x' in locals() and 'beaver_y' in locals():
+        screen.blit(beaver_img, (beaver_x, beaver_y))
 
-            self.screen.blit(message, (25, 10))
+    # Відображення молотка
+    display_hammer(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
 
-            pygame.display.update()
-            self.clock.tick(FPS)
+    # Відображення очків
+    font = pygame.font.Font(None, 36)
+    text = font.render("Score: " + str(score), True, WHITE)
+    screen.blit(text, (10, 10))
 
+    pygame.display.update()
 
-def main():
-    game = Game()
-    game.run()
-
-
-if __name__ == '__main__':
-    main()
+pygame.quit()
+sys.exit()
