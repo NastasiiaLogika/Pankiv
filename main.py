@@ -22,6 +22,9 @@ HOLES_MARGIN_Y = 50
 # Розмір бобра
 BEAVER_SIZE = 80
 
+# Розмір молотка
+HAMMER_SIZE = 80
+
 # Швидкість з'явлення бобра
 BEAVER_SPEED = 1000
 
@@ -38,12 +41,13 @@ background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 beaver_img = pygame.image.load("beaver.png")
 beaver_img = pygame.transform.scale(beaver_img, (BEAVER_SIZE, BEAVER_SIZE))
 hammer_img = pygame.image.load("hammer.png")
+hammer_img = pygame.transform.scale(hammer_img, (HAMMER_SIZE, HAMMER_SIZE))
 hole_img = pygame.image.load("hole.png")
 hole_img = pygame.transform.scale(hole_img, (HOLE_SIZE, HOLE_SIZE))
 
 # Функція для відображення молотка
 def display_hammer(x, y):
-    screen.blit(hammer_img, (x, y))
+    screen.blit(hammer_img, (x - HAMMER_SIZE // 2, y - HAMMER_SIZE // 2))
 
 # Функція для відображення дирки
 def display_hole(x, y):
@@ -60,6 +64,9 @@ def check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
 
 # Час, коли бобер з'явиться на іншому місці
 next_beaver_time = pygame.time.get_ticks() + BEAVER_SPEED
+
+# Приховання системного курсору миші
+pygame.mouse.set_visible(False)
 
 # Основний цикл гри
 running = True
@@ -90,8 +97,11 @@ while running:
                                 pygame.display.flip()
                                 pygame.time.wait(2000)  # Затримка на 2 секунди
                                 running = False
-                        else:
-                            score -= 1
+                            else:
+                                # Вибір нового місця для бобра
+                                holes.remove((beaver_x - (HOLE_SIZE - BEAVER_SIZE) // 2, beaver_y - (HOLE_SIZE - BEAVER_SIZE) // 2))
+                    else:
+                        score -= 1
 
     # Вивід дірок на екран
     holes = []
@@ -116,7 +126,7 @@ while running:
         screen.blit(beaver_img, (beaver_x, beaver_y))
 
     # Відображення молотка
-    display_hammer(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+    display_hammer(*pygame.mouse.get_pos())
 
     # Відображення очків
     font = pygame.font.Font(None, 36)
