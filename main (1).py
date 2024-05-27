@@ -55,11 +55,11 @@ def display_hole(x, y):
 
 # Функція для визначення області, де можна клікати на бобра
 def beaver_rect(x, y):
-    return pygame.Rect(x, y, BEAVER_SIZE, BEAVER_SIZE)
+    return pygame.Rect(x, y, HOLE_SIZE, HOLE_SIZE)
 
 # Функція для визначення, чи клікнули на бобра
 def check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
-    beaver_rect = pygame.Rect(beaver_x, beaver_y, BEAVER_SIZE, BEAVER_SIZE)
+    beaver_rect = pygame.Rect(beaver_x, beaver_y, HOLE_SIZE, HOLE_SIZE)
     return beaver_rect.collidepoint(click_x, click_y)
 
 # Час, коли бобер з'явиться на іншому місці
@@ -75,33 +75,6 @@ while running:
 
     # Відображення фону
     screen.blit(background_img, (0, 0))
-
-    # Обробка подій
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        # Обробка кліків миші
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            click_x, click_y = pygame.mouse.get_pos()
-            for hole_x, hole_y in holes:
-                if hole_x <= click_x <= hole_x + HOLE_SIZE and hole_y <= click_y <= hole_y + HOLE_SIZE:
-                    if 'beaver_x' in locals() and 'beaver_y' in locals():
-                        if check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
-                            score += 1
-                            if score >= 25:
-                                # Перемога
-                                font = pygame.font.Font(None, 72)
-                                win_text = font.render("You Win!", True, WHITE)
-                                screen.blit(win_text, ((WIDTH - win_text.get_width()) // 2, (HEIGHT - win_text.get_height()) // 2))
-                                pygame.display.flip()
-                                pygame.time.wait(2000)  # Затримка на 2 секунди
-                                running = False
-                            else:
-                                # Вибір нового місця для бобра
-                                holes.remove((beaver_x - (HOLE_SIZE - BEAVER_SIZE) // 2, beaver_y - (HOLE_SIZE - BEAVER_SIZE) // 2))
-                    else:
-                        score -= 1
 
     # Вивід дірок на екран
     holes = []
@@ -120,6 +93,44 @@ while running:
             beaver_x += (HOLE_SIZE - BEAVER_SIZE) // 2
             beaver_y += (HOLE_SIZE - BEAVER_SIZE) // 2
             next_beaver_time = current_time + BEAVER_SPEED
+
+    # Обробка подій
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # Обробка кліків миші
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            click_x, click_y = pygame.mouse.get_pos()
+            hit_beaver = False
+            if 'beaver_x' in locals() and 'beaver_y' in locals():
+                if check_click_on_beaver(beaver_x, beaver_y, click_x, click_y):
+                    score += 1
+                    hit_beaver = True
+                    if score >= 25:
+                        # Перемога
+                        font = pygame.font.Font(None, 72)
+                        win_text = font.render("You Win!", True, WHITE)
+                        screen.blit(win_text, ((WIDTH - win_text.get_width()) // 2, (HEIGHT - win_text.get_height()) // 2))
+                        pygame.display.flip()
+                        pygame.time.wait(2000)  # Затримка на 2 секунди
+                        running = False
+            if not hit_beaver:
+                score -= 1
+                if score <= -25:
+                    # Програш
+                    font = pygame.font.Font(None, 72)
+                    lose_text = font.render("Game Over!", True, WHITE)
+                    screen.blit(lose_text, ((WIDTH - lose_text.get_width()) // 2, (HEIGHT - lose_text.get_height()) // 2))
+                    pygame.display.flip()
+                    pygame.time.wait(2000)  # Затримка на 2 секунди
+                    running = False
+
+            if hit_beaver and holes:
+                beaver_x, beaver_y = random.choice(holes)
+                beaver_x += (HOLE_SIZE - BEAVER_SIZE) // 2
+                beaver_y += (HOLE_SIZE - BEAVER_SIZE) // 2
+                next_beaver_time = pygame.time.get_ticks() + BEAVER_SPEED
 
     # Відображення бобра
     if 'beaver_x' in locals() and 'beaver_y' in locals():
